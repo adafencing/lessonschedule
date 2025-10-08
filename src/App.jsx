@@ -87,7 +87,8 @@ export default function App(){
       )}
 
       {tab==="schedule" && (
-        <div className="grid" style={{gridTemplateColumns:"1fr", gap:12}}>
+       <div className="grid" style={{ gridTemplateColumns: "1fr" }}>
+
           <CalendarWeek
             anchorDate={anchorDate}
             lessons={lessons}
