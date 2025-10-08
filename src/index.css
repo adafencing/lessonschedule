@@ -1,0 +1,163 @@
+:root {
+  --bg: #ffffff;        /* white background */
+  --panel: #f9fafb;     /* light gray panels */
+  --muted: #6b7280;     /* gray-500 */
+  --text: #000000;      /* black text */
+  --accent: #2563eb;    /* blue-600 */
+  --danger: #dc2626;    /* red-600 */
+  --border: #d1d5db;    /* gray-300 */
+
+  /* Schedule table sizing */
+  --cal-time-col: 120px;
+  --cal-day-col: 160px;
+  --cal-cell-min-h: 60px;
+}
+
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; }
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.container { max-width: 1100px; margin: 0 auto; padding: 16px; }
+
+h1 { margin: 0 0 12px; font-size: 22px; }
+h2 { margin: 12px 0 8px; font-size: 18px; }
+
+.toolbar, .tabs, .row, .grid {
+  display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+}
+.tabs button, .btn {
+  border: 1px solid var(--border); background: var(--panel); color: var(--text);
+  padding: 8px 12px; border-radius: 8px; cursor: pointer;
+}
+.tabs button.active, .btn.primary { border-color: var(--accent); }
+.btn.danger { border-color: var(--danger); color: var(--danger); }
+.btn.ghost { background: transparent; }
+
+.input, select, textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: #f3f4f6;   /* light gray background */
+  color: var(--text);    /* black text */
+}
+
+.card {
+  border: 1px solid var(--border);
+  background: var(--panel);
+  border-radius: 12px;
+  padding: 12px;
+}
+.grid { gap: 12px; }
+.grid.cols-2 { display: grid; grid-template-columns: 1fr 1fr; }
+.grid.cols-3 { display: grid; grid-template-columns: repeat(3, 1fr); }
+
+.table { width: 100%; border-collapse: collapse; }
+.table th, .table td {
+  border-bottom: 1px solid var(--border);
+  padding: 10px; text-align: left; font-size: 15px; 
+}
+.badge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-size: 12px;
+}
+.badge.done { border-color: var(--accent); }
+.badge.canceled { border-color: var(--danger); color: var(--danger); }
+
+.kpis { display: flex; gap: 12px; flex-wrap: wrap; }
+.kpi {
+  padding: 12px;
+  border: 1px solid var(--border);
+  background: #f3f4f6;   /* light gray background */
+  border-radius: 12px;
+}
+.kpi .num { font-size: 26px; font-weight: 700; }
+
+/* Schedule calendar */
+.calendar-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.calendar {
+  display: grid;
+  grid-template-columns: var(--cal-time-col) repeat(7, minmax(var(--cal-day-col), 1fr));
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  font-size: 15px;
+}
+
+.calendar .head {
+  background: #f3f4f6;   /* light gray background */
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+.calendar .cell, .calendar .head {
+  padding: 10px;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  min-height: var(--cal-cell-min-h);
+}
+.calendar .time {
+  background: #f3f4f6;   /* light gray background */
+  color: var(--text);
+  width: var(--cal-time-col);
+  position: sticky;
+  left: 0;
+  z-index: 1;
+}
+
+.event {
+  margin: 6px 0;
+  padding: 8px 10px;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  font-size: 13px;
+}
+.evt-time { font-size: 14px; color: var(--muted); }
+@media (min-width: 1024px) {}
+  .evt-time { font-size: 16px; }
+  .evt-time { font-weight: 600; display: block; }
+.evt-student { font-size: 15px; }
+@media (min-width: 1024px) {
+  .evt-student { font-size: 16px; }
+}
+.event.done { border-color: var(--accent); }
+.event.canceled { border-color: var(--danger); color: var(--danger); text-decoration: line-through; }
+
+.small { color: var(--muted); font-size: 12px; }
+
+/* Responsive adjustments */
+@media (min-width: 1024px) {
+  body { font-size: 17px; }
+  .table th, .table td { font-size: 16px; padding: 12px; }
+  :root {
+    --cal-time-col: 150px;
+    --cal-day-col: 190px;
+    --cal-cell-min-h: 68px;
+  }
+  .calendar { font-size: 17px; }
+  .event { font-size: 15px; }
+}
+
+@media (max-width: 640px) {
+  body { font-size: 16px; }
+  :root {
+    --cal-time-col: 100px;
+    --cal-day-col: 140px;
+    --cal-cell-min-h: 52px;
+  }
+  .calendar { font-size: 14px; }
+}
+
+
