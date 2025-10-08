@@ -35,10 +35,8 @@ export default function CalendarWeek({ anchorDate, lessons, onQuickAdd, onEdit, 
 
       <div className="calendar-wrap" style={{ marginTop: 8 }}>
         {/* Override grid to 7 equal columns (no time column) */}
-        <div
-          className="calendar"
-          style={{ gridTemplateColumns: `repeat(7, minmax(var(--cal-day-col), 1fr))` }}
-        >
+        <div className="calendar calendar-7">
+
           {/* Header row: weekday on top, month+day below (same size) */}
           {days.map((d) => {
             const { weekday, sub } = headerParts(d);

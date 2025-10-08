@@ -116,6 +116,17 @@ h2 { margin: 12px 0 8px; font-size: 18px; }
   left: 0;
   z-index: 1;
 }
+/* Make calendar fill card width */
+.calendar { width: 100%; }
+
+/* Default (mobile/tablet): keep min widths so user can scroll horizontally */
+.calendar-7 { grid-template-columns: repeat(7, minmax(var(--cal-day-col), 1fr)); }
+
+/* Desktop: fit exactly into the card width (no horizontal scroll) */
+@media (min-width: 1024px) {
+  .calendar-wrap { overflow-x: hidden; }           /* remove scroll on desktop */
+  .calendar-7 { grid-template-columns: repeat(7, 1fr); }  /* no min; fully flexible */
+}
 
 .event {
   margin: 6px 0;
