@@ -7,6 +7,7 @@ import TotalsPanel from "./components/TotalsPanel.jsx";
 import TemplatesBar from "./components/TemplatesBar.jsx";
 import ExportCSVButton from "./components/ExportCSVButton.jsx";
 import { firebaseProjectId } from "./firebase";
+import DiagnosticsBar from "./components/DiagnosticsBar.jsx";
 
 import {
   // Local fallback
@@ -30,6 +31,9 @@ import {
 } from "./firebase";
 
 import { onSnapshot, query, orderBy } from "firebase/firestore";
+
+{/* Diagnostics (helps verify project/uid on each device) */}
+<DiagnosticsBar user={user} lessons={lessons} />
 
 /* ---------------- Local lessons (signed OUT) ---------------- */
 function useLocalLessons() {

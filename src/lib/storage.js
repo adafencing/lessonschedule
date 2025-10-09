@@ -106,3 +106,4 @@ export async function cloudApplyTemplateToWeek(uid, lessonsToCreate){
   }
   await batch.commit();
 }
+

@@ -65,3 +65,24 @@ export async function signOutUser() {
   return signOut(auth);
 }
 export { onAuthStateChanged };
+
+// Runtime config helpers
+export function getRuntimeConfig() {
+  return {
+    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+    appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  };
+}
+
+// Optional: clear the IndexedDB Firestore cache
+import { clearIndexedDbPersistence } from "firebase/firestore";
+export async function clearFirestoreCache() {
+  try {
+    await clearIndexedDbPersistence(db);
+    alert("Offline cache cleared. Reload the page.");
+  } catch (e) {
+    // If there are active tabs/instances, this will fail.
+    alert("Close other tabs of this app and try again.\n\n" + (e?.message || e));
+  }
+}
