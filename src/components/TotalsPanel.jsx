@@ -1,12 +1,19 @@
+// src/components/TotalsPanel.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { monthRange, startOfWeek, addDays, inRange } from "../lib/date";
-import { loadStudents, loadRates, saveRates, loadCurrency, saveCurrency } from "../lib/storage";
+import {
+  // Local (fallback)
+  loadStudents, loadRates, saveRates, loadCurrency, saveCurrency,
+  // Cloud (when signed in)
+  cloudLoadStudents, cloudLoadRates, cloudSaveRates,
+  cloudLoadSettings, cloudSaveSettings,
+} from "../lib/storage";
 
 function groupCounts(lessons){
   const map = new Map();
   for (const l of lessons){
     const key = l.student || "—";
-    map.set(key, (map.get(key)||0) + 1);
+    map.set(key, (map.get(key) || 0) + 1);
   }
   const rows = Array.from(map.entries()).map(([student, count]) => ({ student, count }));
   rows.sort((a,b)=> a.student.localeCompare(b.student));
@@ -14,36 +21,62 @@ function groupCounts(lessons){
   return { rows, total };
 }
 
-export default function TotalsPanel({ anchorDate, lessons }){
+export default function TotalsPanel({ user, anchorDate, lessons }){
   const [countOnlyDone, setCountOnlyDone] = useState(true);
-  const [currency, setCurrency] = useState(() => loadCurrency());
+  const [currency, setCurrency] = useState("€");
   const [students, setStudents] = useState([]);
   const [rates, setRates] = useState({}); // { [student]: number }
 
-  // load students + rates on mount
-  useEffect(() => { setStudents(loadStudents()); setRates(loadRates()); }, []);
+  // Load currency + students + rates depending on auth
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      if (user) {
+        const [settings, sList, rMap] = await Promise.all([
+          cloudLoadSettings(user.uid),
+          cloudLoadStudents(user.uid),
+          cloudLoadRates(user.uid),
+        ]);
+        if (!mounted) return;
+        setCurrency(settings?.currency ?? "€");
+        setStudents(sList || []);
+        setRates(rMap || {});
+      } else {
+        if (!mounted) return;
+        setCurrency(loadCurrency());
+        setStudents(loadStudents());
+        setRates(loadRates());
+      }
+    })();
+    return () => { mounted = false; };
+  }, [user]);
+
+  // Persist currency on change
+  useEffect(() => {
+    if (!currency) return;
+    if (user) cloudSaveSettings(user.uid, { currency });
+    else saveCurrency(currency);
+  }, [currency, user]);
 
   const weekStart = startOfWeek(anchorDate);
   const weekEnd = addDays(weekStart, 6);
   const { start: monthStart, end: monthEnd } = monthRange(anchorDate);
 
-  const filterByStatus = (l) => countOnlyDone ? l.status === "done" : (l.status !== "canceled");
+  const byStatus = (l) => (countOnlyDone ? l.status === "done" : l.status !== "canceled");
 
   const weekLessons = useMemo(
-    ()=> lessons.filter(l => inRange(l.date, weekStart, weekEnd)).filter(filterByStatus),
+    ()=> lessons.filter(l => inRange(l.date, weekStart, weekEnd)).filter(byStatus),
     [lessons, weekStart, weekEnd, countOnlyDone]
   );
   const monthLessons = useMemo(
-    ()=> lessons.filter(l => inRange(l.date, monthStart, monthEnd)).filter(filterByStatus),
+    ()=> lessons.filter(l => inRange(l.date, monthStart, monthEnd)).filter(byStatus),
     [lessons, monthStart, monthEnd, countOnlyDone]
   );
 
   const W = groupCounts(weekLessons);
   const M = groupCounts(monthLessons);
 
-  useEffect(() => { saveCurrency(currency); }, [currency]);
-  
-  // Ensure the rates map has keys for all known students (without overwriting existing values)
+  // Ensure rates map has an entry for every known student (do not overwrite filled values)
   useEffect(() => {
     if (!students?.length) return;
     setRates(prev => {
@@ -53,27 +86,20 @@ export default function TotalsPanel({ anchorDate, lessons }){
     });
   }, [students]);
 
-  const weeklyRows = useMemo(() => {
-    return W.rows.map(r => {
-      const rate = Number(rates[r.student] || 0);
-      const bill = rate * r.count;
-      return { ...r, rate, bill };
-    });
-  }, [W.rows, rates]);
+  const weeklyRows = useMemo(() => W.rows.map(r => {
+    const rate = Number(rates[r.student] || 0);
+    return { ...r, rate, bill: rate * r.count };
+  }), [W.rows, rates]);
 
-  const monthlyRows = useMemo(() => {
-    return M.rows.map(r => {
-      const rate = Number(rates[r.student] || 0);
-      const bill = rate * r.count;
-      return { ...r, rate, bill };
-    });
-  }, [M.rows, rates]);
+  const monthlyRows = useMemo(() => M.rows.map(r => {
+    const rate = Number(rates[r.student] || 0);
+    return { ...r, rate, bill: rate * r.count };
+  }), [M.rows, rates]);
 
   const weeklyBillTotal = weeklyRows.reduce((s, r) => s + r.bill, 0);
   const monthlyBillTotal = monthlyRows.reduce((s, r) => s + r.bill, 0);
 
-  const saveAllRates = () => {
-    // Clean empty student keys and ensure numeric values
+  const saveAllRates = async () => {
     const cleaned = {};
     for (const [k, v] of Object.entries(rates || {})) {
       if (!k) continue;
@@ -81,7 +107,8 @@ export default function TotalsPanel({ anchorDate, lessons }){
       cleaned[k] = Number.isFinite(n) ? Math.max(0, n) : 0;
     }
     setRates(cleaned);
-    saveRates(cleaned);
+    if (user) await cloudSaveRates(user.uid, cleaned);
+    else saveRates(cleaned);
     alert("Rates saved.");
   };
 
@@ -98,10 +125,11 @@ export default function TotalsPanel({ anchorDate, lessons }){
             Currency
             <input
               className="input"
-              style={{ width: 70 }}
+              style={{ width: 80 }}
               value={currency}
               onChange={(e)=>setCurrency(e.target.value)}
               title="Currency symbol or code"
+              placeholder="€ / USD / RSD"
             />
           </label>
         </div>
@@ -111,14 +139,14 @@ export default function TotalsPanel({ anchorDate, lessons }){
       <div className="card" style={{ marginTop: 8 }}>
         <h3 style={{ marginTop: 0 }}>Rates per Student</h3>
         <div className="small" style={{ marginBottom: 6 }}>
-          Set each student’s <strong>rate per lesson</strong>. Billable totals = rate × lesson count.
+          Set each student’s <strong>rate per lesson</strong>. Billable = rate × count.
         </div>
         <table className="table">
           <thead>
-            <tr><th>Student</th><th style={{width:160}}>Rate / lesson</th></tr>
+            <tr><th>Student</th><th style={{width:180}}>Rate / lesson</th></tr>
           </thead>
           <tbody>
-            {(students && students.length ? students : Object.keys(rates || {})).map(s => (
+            {(students?.length ? students : Object.keys(rates || {})).map(s => (
               <tr key={s}>
                 <td>{s || "—"}</td>
                 <td>
@@ -147,7 +175,7 @@ export default function TotalsPanel({ anchorDate, lessons }){
         </div>
       </div>
 
-      {/* Weekly totals */}
+      {/* Weekly & Monthly */}
       <div className="grid cols-2" style={{marginTop:12}}>
         <div className="card">
           <h3>Week ({weekStart} → {weekEnd})</h3>
@@ -158,7 +186,7 @@ export default function TotalsPanel({ anchorDate, lessons }){
             </div>
             <div className="kpi">
               <div className="small">Billable</div>
-              <div className="num">{currency} {weeklyBillTotal.toFixed(0)}</div>
+              <div className="num">{currency} {Math.round(weeklyBillTotal)}</div>
             </div>
           </div>
 
@@ -178,7 +206,6 @@ export default function TotalsPanel({ anchorDate, lessons }){
           </table>
         </div>
 
-        {/* Monthly totals */}
         <div className="card">
           <h3>Month</h3>
           <div className="kpis">
@@ -188,7 +215,7 @@ export default function TotalsPanel({ anchorDate, lessons }){
             </div>
             <div className="kpi">
               <div className="small">Billable</div>
-              <div className="num">{currency} {monthlyBillTotal.toFixed(0)}</div>
+              <div className="num">{currency} {Math.round(monthlyBillTotal)}</div>
             </div>
           </div>
 
@@ -211,4 +238,5 @@ export default function TotalsPanel({ anchorDate, lessons }){
     </div>
   );
 }
+
 
