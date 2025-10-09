@@ -28,6 +28,8 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
+export const firebaseProjectId = firebaseConfig.projectId;
+
 const app = initializeApp(firebaseConfig);
 
 // Firestore with persistent offline cache

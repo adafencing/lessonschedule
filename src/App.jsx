@@ -6,6 +6,7 @@ import LessonForm from "./components/LessonForm.jsx";
 import TotalsPanel from "./components/TotalsPanel.jsx";
 import TemplatesBar from "./components/TemplatesBar.jsx";
 import ExportCSVButton from "./components/ExportCSVButton.jsx";
+import { firebaseProjectId } from "./firebase";
 
 import {
   // local fallback storage
@@ -245,7 +246,9 @@ export default function App() {
   return (
     <div className="container">
       <h1>Fencing Lessons Scheduler</h1>
-
+<p className="small" style={{marginTop:4}}>
+  Storage: {user ? "Cloud (Firestore)" : "Local"} • Project: <strong>{firebaseProjectId}</strong>
+</p>
       <div className="toolbar">
         <div className="tabs" role="tablist" aria-label="Main tabs">
           <button className={tab === "schedule" ? "active" : ""} onClick={() => setTab("schedule")}>
