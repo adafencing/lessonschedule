@@ -9,11 +9,11 @@ import ExportCSVButton from "./components/ExportCSVButton.jsx";
 import { firebaseProjectId } from "./firebase";
 
 import {
-  // local fallback storage
+  // Local fallback
   uid,
   loadLessons,
   saveLessons,
-  // cloud lesson helpers
+  // Cloud lesson helpers
   colLessons,
   addLesson,
   updateLesson,
@@ -50,13 +50,14 @@ function useLocalLessons() {
   return { lessons, add, addMany, update, remove, get };
 }
 
-/* ---------------- Cloud lessons (signed IN) with OPTIMISTIC UI ---------------- */
+/* -------- Cloud lessons (signed IN) with OPTIMISTIC UI -------- */
 function useCloudLessons(user) {
   const [lessons, setLessons] = useState([]);
 
-  // Live subscription
+  // Subscribe to current user's lessons; clear on user change
   useEffect(() => {
     if (!user) return;
+    setLessons([]); // prevent previous user's cached data from flashing
     const q = query(colLessons(user.uid), orderBy("date"), orderBy("start"));
     const unsub = onSnapshot(q, (snap) => {
       const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -65,18 +66,16 @@ function useCloudLessons(user) {
     return () => unsub && unsub();
   }, [user]);
 
-  // temp id for optimistic rows
   const tmpId = () => "tmp_" + Math.random().toString(36).slice(2);
 
   const add = async (payload) => {
     if (!user) return;
-    const optimistic = { id: tmpId(), ...payload };
+    const optimistic = { id: tmpId(), ...payload, ownerUid: user.uid };
     setLessons((prev) => [optimistic, ...prev]);
     try {
       await addLesson(user.uid, payload);
-      // onSnapshot will replace with the real doc; nothing else to do
+      // onSnapshot will sync real doc
     } catch (e) {
-      // revert
       setLessons((prev) => prev.filter((x) => x.id !== optimistic.id));
       throw e;
     }
@@ -84,7 +83,7 @@ function useCloudLessons(user) {
 
   const addMany = async (list) => {
     if (!user) return;
-    const temps = list.map((p) => ({ id: tmpId(), ...p }));
+    const temps = list.map((p) => ({ id: tmpId(), ...p, ownerUid: user.uid }));
     setLessons((prev) => [...temps, ...prev]);
     try {
       for (const p of list) await addLesson(user.uid, p);
@@ -96,13 +95,11 @@ function useCloudLessons(user) {
 
   const update = async (id, changes) => {
     if (!user) return;
-    // capture "before" from current state
     const before = lessons.find((l) => l.id === id);
     setLessons((prev) => prev.map((l) => (l.id === id ? { ...l, ...changes } : l)));
     try {
       await updateLesson(user.uid, id, changes);
     } catch (e) {
-      // revert
       setLessons((prev) => prev.map((l) => (l.id === id ? before : l)));
       throw e;
     }
@@ -110,7 +107,7 @@ function useCloudLessons(user) {
 
   const remove = async (id) => {
     if (!user) return;
-    const before = lessons; // snapshot for revert
+    const before = lessons;
     setLessons((prev) => prev.filter((l) => l.id !== id));
     try {
       await deleteLesson(user.uid, id);
@@ -131,7 +128,7 @@ export default function App() {
     return () => unsub && unsub();
   }, []);
 
-  // Always call hooks in the same order to satisfy Rules of Hooks
+  // Always call hooks in same order
   const localStore = useLocalLessons();
   const cloudStore = useCloudLessons(user);
   const { lessons, add, addMany, update, remove, get } = user ? cloudStore : localStore;
@@ -140,6 +137,7 @@ export default function App() {
   const [anchorDate, setAnchorDate] = useState(today());
   const [editingId, setEditingId] = useState(null);
   const [newPrefill, setNewPrefill] = useState(null);
+
   const DEFAULT_NEW = {
     date: today(),
     start: "18:00",
@@ -195,7 +193,6 @@ export default function App() {
         alert(e.message || String(e));
       }
     };
-
     const doSignUp = async () => {
       const email = prompt("New account email:");
       if (!email) return;
@@ -207,7 +204,6 @@ export default function App() {
         alert(e.message || String(e));
       }
     };
-
     const doReset = async () => {
       const email = prompt("Send password reset to email:");
       if (!email) return;
@@ -218,7 +214,6 @@ export default function App() {
         alert(e.message || String(e));
       }
     };
-
     return user ? (
       <div className="row" style={{ gap: 8 }}>
         <span className="small">
@@ -246,9 +241,7 @@ export default function App() {
   return (
     <div className="container">
       <h1>Fencing Lessons Scheduler</h1>
-<p className="small" style={{marginTop:4}}>
-  Storage: {user ? "Cloud (Firestore)" : "Local"} • Project: <strong>{firebaseProjectId}</strong>
-</p>
+
       <div className="toolbar">
         <div className="tabs" role="tablist" aria-label="Main tabs">
           <button className={tab === "schedule" ? "active" : ""} onClick={() => setTab("schedule")}>
