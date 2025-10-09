@@ -8,6 +8,7 @@ import {
   signInWithEmailAndPassword,
   sendPasswordResetEmail,
   signOut,
+  onAuthStateChanged,
 } from "firebase/auth";
 import {
   initializeFirestore,
@@ -61,3 +62,4 @@ export async function sendPasswordReset(email) {
 export async function signOutUser() {
   return signOut(auth);
 }
+export { onAuthStateChanged };

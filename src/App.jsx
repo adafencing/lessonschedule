@@ -8,7 +8,8 @@ import ExportCSVButton from "./components/ExportCSVButton.jsx";
 import TemplatesBar from "./components/TemplatesBar.jsx";
 
 import { auth, signInWithEmail, signUpWithEmail, signOutUser, sendPasswordReset } from "./firebase";
-import { onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged } from "./firebase";
+
 import {
   colLessons, addLesson, updateLesson, deleteLesson
 } from "./lib/storage";
